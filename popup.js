@@ -2,6 +2,8 @@ const timerDisplay = document.getElementById('timer');
 const startButton = document.getElementById('start');
 const resetButton = document.getElementById('reset');
 
+let isRunning = false; // Track timer state locally
+
 function updateTimer(timeLeft) {
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -12,18 +14,26 @@ function updateTimer(timeLeft) {
 chrome.runtime.sendMessage({ action: 'getTime' }, (response) => {
   console.log('Received time from background:', response);
   updateTimer(response.timeLeft);
-  startButton.textContent = response.isRunning ? 'Pause' : 'Start';
+  isRunning = response.isRunning; // Sync running state
+  startButton.textContent = isRunning ? 'Pause' : 'Start';
 });
 
 startButton.addEventListener('click', () => {
   console.log('Start/Pause button clicked');
-  chrome.runtime.sendMessage({ action: 'start' });
-  startButton.textContent = 'Pause';
+  if (isRunning) {
+    chrome.runtime.sendMessage({ action: 'pause' });
+    startButton.textContent = 'Start';
+  } else {
+    chrome.runtime.sendMessage({ action: 'start' });
+    startButton.textContent = 'Pause';
+  }
+  isRunning = !isRunning; // Toggle state
 });
 
 resetButton.addEventListener('click', () => {
   console.log('Reset button clicked');
   chrome.runtime.sendMessage({ action: 'reset' });
+  isRunning = false;
   startButton.textContent = 'Start';
   updateTimer(25 * 60);
 });
